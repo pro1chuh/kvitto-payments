@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, field_serializer, model_validator
 
 from app.enums import PaymentMethod, PaymentStatus
 
@@ -43,6 +43,13 @@ class PaymentOut(BaseModel):
     schedule: list[int] | None
     email: EmailStr
     created_at: datetime
+
+    @field_serializer("created_at")
+    def serialize_created_at(self, value: datetime) -> str:
+        # SQLite возвращает время без часового пояса; в БД оно хранится в UTC
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=UTC)
+        return value.isoformat()
 
 
 class WebhookIn(BaseModel):

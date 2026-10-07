@@ -24,6 +24,8 @@ def make_payment(
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
     session: Session = Depends(get_session),  # noqa: B008
 ) -> Payment:
+    if idempotency_key is not None and not idempotency_key.strip():
+        idempotency_key = None  # пустой заголовок = ключ не передан
     if idempotency_key is not None:
         existing_payment = find_by_idempotency_key(session, idempotency_key)
         if existing_payment is not None:
@@ -32,7 +34,7 @@ def make_payment(
     tariff = get_tariff(session, data.tariff_id)
     if tariff is None:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status_code=422,
             detail=[
                 {
                     "type": "value_error",
@@ -46,7 +48,7 @@ def make_payment(
         apply_promo(tariff.price, data.promo_code)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            status_code=422,
             detail=[
                 {
                     "type": "value_error",
